@@ -10,6 +10,7 @@ import { authService } from '../../services/auth';
 // Interfaces
 import type { User } from '../../interfaces/user';
 import { getFromLocalStorageWithExpiry } from '../../utils/localstorage';
+import type { AppDispatch } from '../store';
 
 const initialState: { token?: string; playerLoaded: boolean; user?: User; requesting: boolean } = {
   user: undefined,
@@ -18,7 +19,11 @@ const initialState: { token?: string; playerLoaded: boolean; user?: User; reques
   token: getFromLocalStorageWithExpiry('access_token') || undefined,
 };
 
-export const loginToSpotify = createAsyncThunk<{ token?: string; loaded: boolean }, boolean>(
+export const loginToSpotify = createAsyncThunk<
+  { token?: string; loaded: boolean },
+  boolean,
+  { dispatch: AppDispatch }
+>(
   'auth/loginToSpotify',
   async (anonymous, api) => {
     const userToken: string | undefined = getFromLocalStorageWithExpiry('access_token') as string;
