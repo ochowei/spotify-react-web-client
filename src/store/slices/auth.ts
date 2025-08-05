@@ -10,6 +10,7 @@ import { authService } from '../../services/auth';
 // Interfaces
 import type { User } from '../../interfaces/user';
 import { getFromLocalStorageWithExpiry } from '../../utils/localstorage';
+import type { AppDispatch } from '../store';
 
 const initialState: { token?: string; playerLoaded: boolean; user?: User; requesting: boolean } = {
   user: undefined,
@@ -29,6 +30,7 @@ export const loginToSpotify = createAsyncThunk<{ token?: string; loaded: boolean
     if (token) {
       axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
       if (userToken) api.dispatch(fetchUser());
+      initRefreshTokenTimer(api.dispatch);
       return { token, loaded: false };
     }
 
@@ -39,6 +41,7 @@ export const loginToSpotify = createAsyncThunk<{ token?: string; loaded: boolean
       login.logInWithSpotify(anonymous);
     } else {
       axios.defaults.headers.common['Authorization'] = 'Bearer ' + requestedToken;
+      initRefreshTokenTimer(api.dispatch);
     }
 
     return { token: requestedToken, loaded: true };
@@ -77,5 +80,39 @@ const authSlice = createSlice({
 });
 
 export const authActions = { ...authSlice.actions, loginToSpotify, fetchUser };
+
+let refreshTokenTimeout: ReturnType<typeof setTimeout> | undefined;
+
+function scheduleRefreshToken(expiresIn: number, dispatch: AppDispatch) {
+  if (refreshTokenTimeout) clearTimeout(refreshTokenTimeout);
+  const refreshTime = Math.max(expiresIn * 1000 - 60 * 1000, 0);
+  refreshTokenTimeout = setTimeout(async () => {
+    const data = await login.getRefreshToken();
+    if (data?.access_token && data?.expires_in) {
+      dispatch(authActions.setToken({ token: data.access_token }));
+      scheduleRefreshToken(data.expires_in, dispatch);
+    }
+  }, refreshTime);
+}
+
+export function initRefreshTokenTimer(dispatch: AppDispatch) {
+  const stored = localStorage.getItem('access_token');
+  const hasRefresh = localStorage.getItem('refresh_token');
+  if (!stored || !hasRefresh) return;
+  try {
+    const { expiry } = JSON.parse(stored);
+    const expiresIn = Math.floor((expiry - Date.now()) / 1000);
+    if (expiresIn > 0) scheduleRefreshToken(expiresIn, dispatch);
+  } catch {
+    // ignore parse errors
+  }
+}
+
+export function clearRefreshTokenTimer() {
+  if (refreshTokenTimeout) {
+    clearTimeout(refreshTokenTimeout);
+    refreshTokenTimeout = undefined;
+  }
+}
 
 export default authSlice.reducer;

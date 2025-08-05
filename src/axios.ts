@@ -20,10 +20,10 @@ axios.interceptors.response.use(
   (error) => {
     if (error.response.status === 401) {
       return getRefreshToken()
-        .then((token) => {
-          if (!token) return Promise.reject(error);
-          axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
-          error.config.headers['Authorization'] = 'Bearer ' + token;
+        .then((data) => {
+          if (!data?.access_token) return Promise.reject(error);
+          axios.defaults.headers.common['Authorization'] = 'Bearer ' + data.access_token;
+          error.config.headers['Authorization'] = 'Bearer ' + data.access_token;
           return axios(error.config);
         })
         .catch(() => {

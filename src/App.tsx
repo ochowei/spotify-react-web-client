@@ -15,7 +15,12 @@ import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-route
 import { Provider } from 'react-redux';
 import { uiActions } from './store/slices/ui';
 import { PersistGate } from 'redux-persist/integration/react';
-import { authActions, loginToSpotify } from './store/slices/auth';
+import {
+  authActions,
+  loginToSpotify,
+  initRefreshTokenTimer,
+  clearRefreshTokenTimer,
+} from './store/slices/auth';
 import { persistor, store, useAppDispatch, useAppSelector } from './store/store';
 
 // Spotify
@@ -67,10 +72,15 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
     dispatch(authActions.setToken({ token: tokenInLocalStorage }));
 
     if (tokenInLocalStorage) {
+      initRefreshTokenTimer(dispatch);
       dispatch(authActions.fetchUser());
     } else {
       dispatch(loginToSpotify(true));
     }
+
+    return () => {
+      clearRefreshTokenTimer();
+    };
   }, [dispatch]);
 
   const webPlaybackSdkProps: WebPlaybackProps = useMemo(

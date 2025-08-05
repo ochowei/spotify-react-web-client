@@ -171,7 +171,7 @@ export const getRefreshToken = async () => {
   if (response.refresh_token) {
     localStorage.setItem('refresh_token', response.refresh_token);
   }
-  return response.access_token;
+  return { access_token: response.access_token, expires_in: response.expires_in };
 };
 
 export default { logInWithSpotify, getToken, getRefreshToken };
