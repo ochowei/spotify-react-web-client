@@ -17,19 +17,19 @@ if (access_token) {
 
 axios.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response.status === 401) {
-      return getRefreshToken()
-        .then((data) => {
-          if (!data?.access_token) return Promise.reject(error);
-          axios.defaults.headers.common['Authorization'] = 'Bearer ' + data.access_token;
-          error.config.headers['Authorization'] = 'Bearer ' + data.access_token;
-          return axios(error.config);
-        })
-        .catch(() => {
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('access_token');
-        });
+  async (error) => {
+    if (error.response?.status === 401) {
+      try {
+        const data = await getRefreshToken();
+        if (!data?.access_token) throw error;
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + data.access_token;
+        error.config.headers['Authorization'] = 'Bearer ' + data.access_token;
+        return axios(error.config);
+      } catch (err) {
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('access_token');
+        return Promise.reject(err);
+      }
     }
     return Promise.reject(error);
   }
