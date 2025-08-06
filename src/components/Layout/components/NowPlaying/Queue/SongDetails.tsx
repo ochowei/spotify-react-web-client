@@ -4,13 +4,15 @@ import { useAppSelector } from '../../../../../store/store';
 import { playerService } from '../../../../../services/player';
 import { Episode } from '../../../../../interfaces/episode';
 import useIsMobile from '../../../../../utils/isMobile';
+import { msToTime } from '../../../../../utils';
 
 interface QueueSongDetailsProps {
   song: Spotify.Track | Episode;
-  isPlaying: boolean;
+  isPlaying?: boolean;
+  extendedTracks: string[];
 }
 
-const QueueSongDetails: FC<QueueSongDetailsProps> = memo(({ song, isPlaying }) => {
+const QueueSongDetails: FC<QueueSongDetailsProps> = memo(({ song, isPlaying, extendedTracks }) => {
   const isMobile = useIsMobile();
   const queue = useAppSelector((state) => state.queue.queue);
   const isPaused = useAppSelector((state) => state.spotify.state?.paused);
@@ -54,6 +56,13 @@ const QueueSongDetails: FC<QueueSongDetailsProps> = memo(({ song, isPlaying }) =
     return '';
   }, [song]);
 
+  const duration = useMemo(() => {
+    if (extendedTracks.includes(song.name)) {
+      return '0:00-0:50';
+    }
+    return `0:00-${msToTime(song.duration_ms)}`;
+  }, [extendedTracks, song]);
+
   return (
     <div
       className='queue-song'
@@ -76,6 +85,7 @@ const QueueSongDetails: FC<QueueSongDetailsProps> = memo(({ song, isPlaying }) =
             className={`text-white font-bold song-title ${isPlaying ? 'active' : ''}`}
           >
             {song.name}
+            <span className='text-gray-300 ml-2'>{duration}</span>
           </p>
           <p className='text-gray-200 song-artist' title={artists}>
             {artists}
