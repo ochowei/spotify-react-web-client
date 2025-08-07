@@ -132,7 +132,6 @@ export const getRefreshToken = async () => {
   const refreshToken = localStorage.getItem('refresh_token') as string;
 
   if (!refreshToken) {
-    logInWithSpotify();
     return null;
   }
 
@@ -153,7 +152,6 @@ export const getRefreshToken = async () => {
   const response = await body.json();
 
   if (!response.access_token) {
-    logInWithSpotify();
     return null;
   }
 
