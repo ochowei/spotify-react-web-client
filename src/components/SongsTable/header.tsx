@@ -41,7 +41,7 @@ const Album = (props: ItemProps) => {
 const DateAdded = (props: ItemProps) => {
   const { t } = useTranslation(['playlist']);
   return (
-    <div style={{ flex: 3 }}>
+    <div style={{ flex: 1.5 }}>
       <h3 className='column-name tablet-hidden text-left'>{t('Date Added')}</h3>
     </div>
   );
