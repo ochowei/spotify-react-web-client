@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, FC, memo, useCallback } from 'react';
-import { useAppDispatch } from '../../store/store';
+import { useAppDispatch, useAppSelector } from '../../store/store';
 import { spotifyActions } from '../../store/slices/spotify';
 import { playerService } from '../../services/player';
 import { tracksService } from '../../services/tracks';
@@ -27,38 +27,12 @@ const WebPlayback: FC<WebPlaybackProps> = memo((props) => {
   const { onPlayerWaitingForDevice, onPlayerDeviceSelected } = props;
   const { onPlayerError, onPlayerLoading, onPlayerRequestAccessToken } = props;
 
+  const extendedTracks = useAppSelector((state) => state.spotify.extendedTracks);
   const webPlaybackInstance = useRef<Spotify.Player | null>(null);
   const statePollingInterval = useRef<NodeJS.Timeout | null>(null);
   const deviceSelectedInterval = useRef<NodeJS.Timeout | null>(null);
   const trackEndTimeRef = useRef<number | null>(null);
   const currentTrackIdRef = useRef<string | null>(null);
-  const extendedTimeoutTracksRef = useRef<
-    Map<string, { start: string; duration: number }>
-  >(new Map());
-
-  useEffect(() => {
-    tracksService
-      .getTrackTimeout()
-      .then(
-        (
-          tracks: {
-            id: string;
-            name: string;
-            start: string;
-            duration: number;
-          }[],
-        ) => {
-          const map = new Map<string, { start: string; duration: number }>();
-          tracks.forEach((t) => {
-            map.set(t.id, { start: t.start, duration: t.duration });
-          });
-          extendedTimeoutTracksRef.current = map;
-        },
-      )
-      .catch((err) => {
-        console.error('Failed to load track timeout data', err);
-      });
-  }, []);
 
   const handleState = async (state: Spotify.PlaybackState | null) => {
     if (state) {
@@ -76,7 +50,7 @@ const WebPlayback: FC<WebPlaybackProps> = memo((props) => {
 
       if (!state.paused) {
         if (newTrackId && currentTrackIdRef.current !== newTrackId) {
-          const trackInfo = extendedTimeoutTracksRef.current.get(newTrackId);
+          const trackInfo = extendedTracks.get(newTrackId);
 
           if (trackInfo) {
             const startMs = timeToMs(trackInfo.start);

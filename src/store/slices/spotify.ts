@@ -15,6 +15,7 @@ const initialState: {
   state: Spotify.PlaybackState | null;
   player: Spotify.Player | null;
   devices: Device[];
+  extendedTracks: Map<string, { start: string; duration: number }>;
 } = {
   state: null,
   deviceId: null,
@@ -23,6 +24,7 @@ const initialState: {
   player: null,
   devices: [],
   activeDeviceType: 'Computer',
+  extendedTracks: new Map(),
 };
 
 export const setState = createAsyncThunk<
@@ -76,6 +78,12 @@ const spotifySlice = createSlice({
       state.activeDevice = action.payload.activeDevice;
       state.activeDeviceType = action.payload.type || 'Computer';
     },
+    setExtendedTracks(
+      state,
+      action: PayloadAction<Map<string, { start: string; duration: number }>>
+    ) {
+      state.extendedTracks = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(setState.fulfilled, (state, action) => {
@@ -111,6 +119,10 @@ export const getOtherDevices = createSelector(
   }
 );
 
-export const spotifyActions = { ...spotifySlice.actions, setState, fetchDevices };
+export const spotifyActions = {
+  ...spotifySlice.actions,
+  setState,
+  fetchDevices,
+};
 
 export default spotifySlice.reducer;
