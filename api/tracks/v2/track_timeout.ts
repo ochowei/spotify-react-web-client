@@ -1,5 +1,30 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
+async function verifySpotifyUser(authHeader: string | string[] | undefined) {
+  if (!authHeader) {
+    throw new Error('No Authorization header provided');
+  }
+
+  const response = await fetch('https://api.spotify.com/v1/me', {
+    headers: {
+      Authorization: authHeader as string,
+    },
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error(
+      'Failed to fetch Spotify user data:',
+      response.status,
+      response.statusText,
+      errorBody
+    );
+    throw new Error('Failed to verify Spotify user');
+  }
+  const spotifyUserData = await response.json();
+  console.log('Spotify user data:', spotifyUserData);
+}
+
 
 function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method === 'GET') {
@@ -45,6 +70,10 @@ function handler(req: IncomingMessage, res: ServerResponse) {
     });
     req.on('end', async () => {
       try {
+        const authHeader =
+          req.headers['authorization'] || req.headers['Authorization'];
+        await verifySpotifyUser(authHeader);
+
         const newTracks = JSON.parse(body) as any[];
 
         const pipeline = newTracks.map((track) => [
@@ -66,43 +95,19 @@ function handler(req: IncomingMessage, res: ServerResponse) {
 
         console.log('Tracks updated successfully:', newTracks);
 
-        const authHeader =
-          req.headers['authorization'] || req.headers['Authorization'];
-
-        if (authHeader) {
-          try {
-            const response = await fetch('https://api.spotify.com/v1/me', {
-              headers: {
-                Authorization: authHeader as string,
-              },
-            });
-
-            if (response.ok) {
-              const spotifyUserData = await response.json();
-              console.log('Spotify user data:', spotifyUserData);
-            } else {
-              console.error(
-                'Failed to fetch Spotify user data:',
-                response.status,
-                response.statusText
-              );
-              const errorBody = await response.text();
-              console.error('Spotify API error response:', errorBody);
-            }
-          } catch (error) {
-            console.error('Error fetching Spotify user data:', error);
-          }
-        } else {
-          console.log('No Authorization header provided');
-        }
-
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ message: 'Tracks updated successfully' }));
-      } catch (error) {
-        res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      } catch (error: any) {
+        if (error.message === 'No Authorization header provided' || error.message === 'Failed to verify Spotify user') {
+            res.statusCode = 401;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+        } else {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
       }
     });
   } else if (req.method === 'DELETE') {
@@ -112,6 +117,10 @@ function handler(req: IncomingMessage, res: ServerResponse) {
     });
     req.on('end', async () => {
       try {
+        const authHeader =
+          req.headers['authorization'] || req.headers['Authorization'];
+        await verifySpotifyUser(authHeader);
+
         const tracksToDelete = JSON.parse(body) as any[];
 
         const trackIdsToDelete = tracksToDelete.map((track) => track.id);
@@ -130,10 +139,16 @@ function handler(req: IncomingMessage, res: ServerResponse) {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ message: 'Tracks deleted successfully' }));
-      } catch (error) {
-        res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      } catch (error: any) {
+        if (error.message === 'No Authorization header provided' || error.message === 'Failed to verify Spotify user') {
+            res.statusCode = 401;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+        } else {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
       }
     });
   } else {
