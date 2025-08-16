@@ -131,7 +131,8 @@ export const TrackTimeSettings = (props: TrackTimeSettingsProps) => {
       )}`
     : msToTime(song.duration_ms);
 
-  const handleOk = () => {
+  const handleOk = (e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
     if (isCustomTimeEnabled) {
       const startTimeInMs =
         startMinutes * 60000 +
@@ -186,7 +187,10 @@ export const TrackTimeSettings = (props: TrackTimeSettingsProps) => {
           className='track-time-settings-modal'
           open={open}
           onOk={handleOk}
-          onCancel={() => setOpen(false)}
+          onCancel={(e) => {
+            e.stopPropagation();
+            setOpen(false);
+          }}
           title={`設定 ${song.name} 播放時長`}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
