@@ -36,8 +36,9 @@ export const PlaylistList: FC<PlaylistListProps> = memo(({ color }) => {
   >(new Map());
 
   useEffect(() => {
+    if (!playlist?.id) return;
     tracksService
-      .getTrackTimeout()
+      .getTrackTimeout(playlist.id)
       .then(
         (
           tracks: { name: string; start: string; duration: number }[],
@@ -52,7 +53,7 @@ export const PlaylistList: FC<PlaylistListProps> = memo(({ color }) => {
       .catch((err) => {
         console.error('Failed to load track timeout data', err);
       });
-  }, []);
+  }, [playlist?.id]);
 
   const hasTracks = !!playlist?.tracks?.total;
 
