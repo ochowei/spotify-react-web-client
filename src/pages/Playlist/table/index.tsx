@@ -12,6 +12,7 @@ import { tracksService } from '../../../services/tracks';
 
 // Redux
 import { playlistActions } from '../../../store/slices/playlist';
+import { spotifyActions } from '../../../store/slices/spotify';
 import { useAppDispatch, useAppSelector } from '../../../store/store';
 
 // Constants
@@ -31,9 +32,7 @@ export const PlaylistList: FC<PlaylistListProps> = memo(({ color }) => {
   const canEdit = useAppSelector((state) => state.playlist.canEdit);
   const playlist = useAppSelector((state) => state.playlist.playlist);
 
-  const [extendedTracks, setExtendedTracks] = useState<
-    Map<string, { start: string; duration: number }>
-  >(new Map());
+  const extendedTracks = useAppSelector((state) => state.spotify.extendedTracks);
 
   useEffect(() => {
     tracksService
@@ -51,7 +50,7 @@ export const PlaylistList: FC<PlaylistListProps> = memo(({ color }) => {
           tracks.forEach((t) => {
             map.set(t.id, { start: t.start, duration: t.duration });
           });
-          setExtendedTracks(map);
+          dispatch(spotifyActions.setExtendedTracks(map));
         },
       )
       .catch((err) => {
@@ -67,7 +66,6 @@ export const PlaylistList: FC<PlaylistListProps> = memo(({ color }) => {
     const newExtendedTracks = new Map(extendedTracks);
     if (settings) {
       newExtendedTracks.set(songId, settings);
-      setExtendedTracks(newExtendedTracks);
 
       const tracksToSave = Array.from(newExtendedTracks.entries()).map(
         ([id, { start, duration }]) => {
@@ -84,6 +82,7 @@ export const PlaylistList: FC<PlaylistListProps> = memo(({ color }) => {
       tracksService
         .setTrackTimeout(tracksToSave)
         .then((response) => {
+          dispatch(spotifyActions.setExtendedTracks(newExtendedTracks));
           console.log(response.message);
         })
         .catch((err) => {
@@ -92,11 +91,11 @@ export const PlaylistList: FC<PlaylistListProps> = memo(({ color }) => {
         });
     } else {
       newExtendedTracks.delete(songId);
-      setExtendedTracks(newExtendedTracks);
 
       tracksService
         .deleteTrackTimeout([{ id: songId }])
         .then((response) => {
+          dispatch(spotifyActions.setExtendedTracks(newExtendedTracks));
           console.log(response.message);
         })
         .catch((err) => {
