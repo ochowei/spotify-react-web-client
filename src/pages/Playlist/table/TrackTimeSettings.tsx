@@ -1,19 +1,15 @@
 import { useState, useEffect } from 'react';
-import dayjs, { type Dayjs } from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
 import {
   ConfigProvider,
   Modal,
   InputNumber,
-  TimePicker,
   theme,
   Switch,
+  Select,
 } from 'antd';
 import { FaGear } from 'react-icons/fa6';
 import { msToTime, timeToMs } from '../../../utils';
 import { type Track } from '../../../interfaces/track';
-
-dayjs.extend(customParseFormat);
 
 interface TrackTimeSettingsProps {
   song: Track;
@@ -30,7 +26,9 @@ export const TrackTimeSettings = (props: TrackTimeSettingsProps) => {
 
   const [open, setOpen] = useState(false);
   const [isCustomTimeEnabled, setIsCustomTimeEnabled] = useState(false);
-  const [startTime, setStartTime] = useState<Dayjs | null>(null);
+  const [startMinutes, setStartMinutes] = useState(0);
+  const [startSeconds, setStartSeconds] = useState(0);
+  const [startFractionalSeconds, setStartFractionalSeconds] = useState(0);
   const [seconds, setSeconds] = useState<number | null>(null);
 
   useEffect(() => {
@@ -38,11 +36,21 @@ export const TrackTimeSettings = (props: TrackTimeSettingsProps) => {
       const info = extendedTracks.get(song.id);
       if (info) {
         setIsCustomTimeEnabled(true);
-        setStartTime(dayjs(info.start, 'mm:ss'));
+        const [minutesStr, secondsStr] = info.start.split(':');
+        const minutes = parseInt(minutesStr, 10) || 0;
+        const [wholeSecondsStr, fractionalSecondsStr] = (secondsStr || '0').split('.');
+        const secs = parseInt(wholeSecondsStr, 10) || 0;
+        const fracSecs = parseInt(fractionalSecondsStr || '0', 10) || 0;
+
+        setStartMinutes(minutes);
+        setStartSeconds(secs);
+        setStartFractionalSeconds(fracSecs);
         setSeconds(info.duration);
       } else {
         setIsCustomTimeEnabled(false);
-        setStartTime(null);
+        setStartMinutes(0);
+        setStartSeconds(0);
+        setStartFractionalSeconds(0);
         setSeconds(null);
       }
     }
@@ -51,25 +59,26 @@ export const TrackTimeSettings = (props: TrackTimeSettingsProps) => {
   const trackDurationMs = song.duration_ms;
   const maxMinutes = Math.floor(trackDurationMs / 60000);
   const maxSeconds = Math.floor((trackDurationMs % 60000) / 1000);
-  const totalSeconds = Math.floor(trackDurationMs / 1000);
+  const totalSeconds = trackDurationMs / 1000;
 
-  const disabledTime = () => ({
-    disabledMinutes: (_hour: number) =>
-      Array.from({ length: 59 - maxMinutes }, (_, i) => maxMinutes + 1 + i),
-    disabledSeconds: (_hour: number, minute: number) =>
-      minute === maxMinutes
-        ? Array.from(
-            { length: 59 - maxSeconds },
-            (_, i) => maxSeconds + 1 + i
-          )
-        : [],
-  });
+  const minuteOptions = Array.from({ length: maxMinutes + 1 }, (_, i) => ({
+    value: i,
+    label: String(i).padStart(2, '0'),
+  }));
 
-  const remainingSeconds = Math.max(
-    totalSeconds -
-      (startTime ? startTime.minute() * 60 + startTime.second() : 0),
-    0
+  const secondOptions = Array.from(
+    { length: startMinutes === maxMinutes ? maxSeconds + 1 : 60 },
+    (_, i) => ({ value: i, label: String(i).padStart(2, '0') })
   );
+
+  const fractionalSecondOptions = Array.from({ length: 10 }, (_, i) => ({
+    value: i,
+    label: String(i),
+  }));
+
+  const startTimeInSeconds =
+    startMinutes * 60 + startSeconds + startFractionalSeconds / 10;
+  const remainingSeconds = Math.max(totalSeconds - startTimeInSeconds, 0);
 
   const info = extendedTracks.get(song.id);
   const duration = info
@@ -80,11 +89,12 @@ export const TrackTimeSettings = (props: TrackTimeSettingsProps) => {
 
   const handleOk = () => {
     if (isCustomTimeEnabled) {
-      if (startTime && seconds !== null) {
-        onSave(
-          song.id,
-          song.name, {
-          start: startTime.format('mm:ss'),
+      if (seconds !== null) {
+        const start = `${String(startMinutes).padStart(2, '0')}:${String(
+          startSeconds
+        ).padStart(2, '0')}.${startFractionalSeconds}`;
+        onSave(song.id, song.name, {
+          start,
           duration: seconds,
         });
       }
@@ -117,7 +127,7 @@ export const TrackTimeSettings = (props: TrackTimeSettingsProps) => {
       <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
         <Modal
           destroyOnClose
-          className="track-time-settings-modal"
+          className='track-time-settings-modal'
           open={open}
           onOk={handleOk}
           onCancel={() => setOpen(false)}
@@ -132,26 +142,42 @@ export const TrackTimeSettings = (props: TrackTimeSettingsProps) => {
           </div>
           {isCustomTimeEnabled && (
             <div className='mt-4'>
-              <TimePicker
-                className='mb-2 w-full track-time-picker'
-                value={startTime}
-                onChange={(value) => setStartTime(value)}
-                format='mm:ss'
-                disabledTime={disabledTime}
-                showNow={false}
-                inputReadOnly
-              />
+              <div
+                className='mb-2 w-full'
+                style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
+              >
+                <Select
+                  value={startMinutes}
+                  onChange={setStartMinutes}
+                  options={minuteOptions}
+                  style={{ flex: 1 }}
+                />
+                <span className='text-lg'>:</span>
+                <Select
+                  value={startSeconds}
+                  onChange={setStartSeconds}
+                  options={secondOptions}
+                  style={{ flex: 1 }}
+                />
+                <span className='text-lg'>.</span>
+                <Select
+                  value={startFractionalSeconds}
+                  onChange={setStartFractionalSeconds}
+                  options={fractionalSecondOptions}
+                  style={{ flex: 1 }}
+                />
+              </div>
               <InputNumber
                 placeholder='播放秒數'
-                className='duration-input'
+                className='duration-input w-full'
                 value={seconds ?? undefined}
                 onChange={(value) =>
                   setSeconds(typeof value === 'number' ? value : null)
                 }
                 max={remainingSeconds}
-                step="0.1"
+                step='0.1'
                 min={0}
-                inputMode="decimal"
+                inputMode='decimal'
               />
             </div>
           )}
