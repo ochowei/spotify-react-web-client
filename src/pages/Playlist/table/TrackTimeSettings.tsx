@@ -171,7 +171,10 @@ export const TrackTimeSettings = (props: TrackTimeSettingsProps) => {
         {duration}
         <button
           className='ml-2 text-xs'
-          onClick={() => setOpen(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
           aria-label='settings'
         >
           <FaGear />
