@@ -30,7 +30,7 @@ const WebPlayback: FC<WebPlaybackProps> = memo((props) => {
   const webPlaybackInstance = useRef<Spotify.Player | null>(null);
   const statePollingInterval = useRef<NodeJS.Timeout | null>(null);
   const deviceSelectedInterval = useRef<NodeJS.Timeout | null>(null);
-  const trackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const trackEndTimeRef = useRef<number | null>(null);
   const currentTrackIdRef = useRef<string | null>(null);
   const extendedTimeoutTracksRef = useRef<
     Map<string, { start: string; duration: number }>
@@ -60,40 +60,33 @@ const WebPlayback: FC<WebPlaybackProps> = memo((props) => {
       });
   }, []);
 
-  const handleState = async (state: any | null) => {
+  const handleState = async (state: Spotify.PlaybackState | null) => {
     if (state) {
       dispatch(spotifyActions.setState({ state }));
 
-      if (state.paused) {
-        if (trackTimeoutRef.current) {
-          clearTimeout(trackTimeoutRef.current);
-          trackTimeoutRef.current = null;
-        }
-      } else {
-        const newTrackId = state.track_window?.current_track?.id;
+      const newTrackId = state.track_window?.current_track?.id;
 
-        if (
-          newTrackId &&
-          (currentTrackIdRef.current !== newTrackId || !trackTimeoutRef.current)
-        ) {
-          if (trackTimeoutRef.current) {
-            clearTimeout(trackTimeoutRef.current);
-          }
+      if (
+        trackEndTimeRef.current &&
+        state.position > trackEndTimeRef.current
+      ) {
+        playerService.nextTrack();
+        trackEndTimeRef.current = null;
+      }
 
-          const trackInfo =
-            newTrackId && extendedTimeoutTracksRef.current.get(newTrackId);
+      if (!state.paused) {
+        if (newTrackId && currentTrackIdRef.current !== newTrackId) {
+          const trackInfo = extendedTimeoutTracksRef.current.get(newTrackId);
+
           if (trackInfo) {
             const startMs = timeToMs(trackInfo.start);
+            trackEndTimeRef.current = startMs + trackInfo.duration * 1000;
             if (startMs > 0) {
               playerService.seekToPosition(startMs);
             }
-            trackTimeoutRef.current = setTimeout(() => {
-              playerService.nextTrack();
-            }, trackInfo.duration * 1000);
           } else {
-            trackTimeoutRef.current = null;
+            trackEndTimeRef.current = null;
           }
-
           currentTrackIdRef.current = newTrackId;
         }
       }
@@ -224,7 +217,6 @@ const WebPlayback: FC<WebPlaybackProps> = memo((props) => {
     return () => {
       clearStatePolling();
       if (deviceSelectedInterval.current) clearInterval(deviceSelectedInterval.current);
-      if (trackTimeoutRef.current) clearTimeout(trackTimeoutRef.current);
       webPlaybackInstance.current?.disconnect();
     };
   }, []);
