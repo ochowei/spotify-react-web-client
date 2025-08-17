@@ -70,6 +70,11 @@ const WebPlayback: FC<WebPlaybackProps> = memo((props) => {
     }
   };
 
+  const handleStateRef = useRef(handleState);
+  useEffect(() => {
+    handleStateRef.current = handleState;
+  }, [handleState]);
+
   const waitForSpotify = useCallback(() => {
     return new Promise<void>((resolve) => {
       if ('Spotify' in window) {
@@ -144,7 +149,7 @@ const WebPlayback: FC<WebPlaybackProps> = memo((props) => {
 
     webPlaybackInstance.current.on('player_state_changed', async (state) => {
       console.log(state);
-      await handleState(state);
+      await handleStateRef.current(state);
     });
 
     webPlaybackInstance.current.on('ready', async (data) => {
@@ -163,7 +168,6 @@ const WebPlayback: FC<WebPlaybackProps> = memo((props) => {
     playerAutoConnect,
     onPlayerRequestAccessToken,
     onPlayerError,
-    handleState,
     dispatch,
   ]);
 
