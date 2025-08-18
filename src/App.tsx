@@ -5,6 +5,7 @@ import './styles/App.scss';
 import i18next from 'i18next';
 import { FC, Suspense, lazy, memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { getFromLocalStorageWithExpiry } from './utils/localstorage';
+import { log, LogLevel } from './utils/logger';
 
 // Components
 import { ConfigProvider } from 'antd';
@@ -68,13 +69,17 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
   const requesting = useAppSelector((state) => state.auth.requesting);
 
   useEffect(() => {
+    log('SpotifyContainer useEffect running');
     const tokenInLocalStorage = getFromLocalStorageWithExpiry('access_token');
     dispatch(authActions.setToken({ token: tokenInLocalStorage }));
+    log('Initial token in local storage', LogLevel.INFO, { hasToken: !!tokenInLocalStorage });
 
     if (tokenInLocalStorage) {
+      log('Token exists, initializing refresh timer and fetching user');
       initRefreshTokenTimer(dispatch);
       dispatch(authActions.fetchUser());
     } else {
+      log('No token, dispatching loginToSpotify');
       dispatch(loginToSpotify(true));
     }
 
@@ -106,6 +111,7 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
     [dispatch]
   );
 
+  log('SpotifyContainer rendering', LogLevel.INFO, { user, requesting });
   if (!user) return <Spinner loading={requesting}>{children}</Spinner>;
 
   return <WebPlayback {...webPlaybackSdkProps}>{children}</WebPlayback>;
