@@ -75,7 +75,7 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
       initRefreshTokenTimer(dispatch);
       dispatch(authActions.fetchUser());
     } else {
-      dispatch(authActions.setRequesting({ requesting: false }));
+      dispatch(loginToSpotify(true));
     }
 
     return () => {
@@ -96,7 +96,9 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
       onPlayerWaitingForDevice: () => {
         dispatch(authActions.setPlayerLoaded({ playerLoaded: true }));
       },
-      onPlayerError: (e) => {},
+      onPlayerError: (e) => {
+        dispatch(loginToSpotify(false));
+      },
       onPlayerDeviceSelected: () => {
         dispatch(authActions.setPlayerLoaded({ playerLoaded: true }));
       },
