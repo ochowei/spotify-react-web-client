@@ -30,33 +30,19 @@ export const LibraryLoginInfo = memo(() => {
   }, [onClose]);
 
   return (
-    <Popconfirm
-      icon={null}
-      open={tooltipOpen}
-      placement='left'
-      onCancel={onClose}
-      okText={t(`Log In`)}
-      onConfirm={onConfirm}
-      cancelText={t(`Not now`)}
-      title={t('Create a playlist')}
-      cancelButtonProps={{ type: 'text' }}
-      okButtonProps={{ className: 'white-button small' }}
-      description={t('Log in to create and share playlists.')}
-    >
-      <div style={{ marginRight: -5 }}>
-        <DetailsCard title={t(`Let's access your library`)}>
-          <p style={{ fontWeight: 400, color: '#fff' }}>
-            {t(`Log In to access all the features of the app`)}
-          </p>
-          <div style={{ marginTop: 20, marginBottom: 30, position: 'relative' }}>
-            <WhiteButton
-              size='small'
-              title={t('Log In')}
-              onClick={() => dispatch(loginToSpotify(false))}
-            />
-          </div>
-        </DetailsCard>
-      </div>
-    </Popconfirm>
+    <div style={{ marginRight: -5 }}>
+      <DetailsCard title={t(`Let's access your library`)}>
+        <p style={{ fontWeight: 400, color: '#fff' }}>
+          {t(`Log In to access all the features of the app`)}
+        </p>
+        <div style={{ marginTop: 20, marginBottom: 30, position: 'relative' }}>
+          <WhiteButton
+            size='small'
+            title={t('Log In')}
+            onClick={() => dispatch(loginToSpotify(false))}
+          />
+        </div>
+      </DetailsCard>
+    </div>
   );
 });
