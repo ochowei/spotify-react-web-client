@@ -79,8 +79,8 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
       initRefreshTokenTimer(dispatch);
       dispatch(authActions.fetchUser());
     } else {
-      log('No token, dispatching loginToSpotify');
-      dispatch(loginToSpotify(true));
+      log('No token found, skipping automatic login');
+      // dispatch(loginToSpotify(true)); // Removed to prevent automatic redirection
     }
 
     return () => {
