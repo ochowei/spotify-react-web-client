@@ -1,6 +1,5 @@
-import Axios from 'axios';
-import { getFromLocalStorageWithExpiry, setLocalStorageWithExpiry } from '../localstorage';
 import axios from 'axios';
+import { getFromLocalStorageWithExpiry, setLocalStorageWithExpiry } from '../localstorage';
 import { log, LogLevel } from '../logger';
 
 /* eslint-disable import/no-anonymous-default-export */
@@ -75,21 +74,21 @@ const requestToken = async (code: string) => {
   log('Requesting token with code');
   const code_verifier = localStorage.getItem('code_verifier') as string;
 
-  const body = {
+  const body = new URLSearchParams({
     code,
     client_id,
     redirect_uri,
     code_verifier,
     grant_type: 'authorization_code',
-  };
+  });
 
   try {
-    const { data: response } = await Axios.post<{
+    const { data: response } = await axios.post<{
       access_token: string;
       token_type: string;
       expires_in: number;
       refresh_token: string;
-    }>('https://accounts.spotify.com/api/token', body, {
+    }>('https://accounts.spotify.com/api/token', body.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
