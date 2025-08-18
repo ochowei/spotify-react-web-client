@@ -112,9 +112,11 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
   );
 
   log('SpotifyContainer rendering', LogLevel.INFO, { user, requesting });
-  if (!user) return <Spinner loading={requesting}>{children}</Spinner>;
 
-  return <WebPlayback {...webPlaybackSdkProps}>{children}</WebPlayback>;
+  if (requesting) return <Spinner loading={true}>{children}</Spinner>;
+  if (user) return <WebPlayback {...webPlaybackSdkProps}>{children}</WebPlayback>;
+
+  return <>{children}</>;
 });
 
 const RoutesComponent = memo(() => {
