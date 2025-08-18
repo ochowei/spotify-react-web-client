@@ -1,5 +1,3 @@
-import axios from '../axios';
-
 enum LogLevel {
   INFO = 'info',
   WARN = 'warn',
@@ -12,13 +10,16 @@ interface LogContext {
 
 const log = (message: string, level: LogLevel = LogLevel.INFO, context: LogContext = {}): void => {
   try {
-    // Using navigator.sendBeacon if available for reliability, otherwise fallback to axios
-    // However, sendBeacon sends POST and doesn't support JSON, so we stick to axios
-    // for simplicity and consistency with the backend.
-    axios.post('/api/log', {
-      message,
-      level,
-      context,
+    fetch('/api/log', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        level,
+        context,
+      }),
     }).catch(error => {
       // Silently fail, but log to console for developer awareness during development
       console.error('Failed to send log to server:', error);
