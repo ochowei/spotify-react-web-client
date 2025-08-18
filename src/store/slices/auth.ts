@@ -3,7 +3,6 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 // Utils
 import axios from '../../axios';
 import login from '../../utils/spotify/login';
-import { log, LogLevel } from '../../utils/logger';
 
 // Services
 import { authService } from '../../services/auth';
@@ -27,44 +26,24 @@ export const loginToSpotify = createAsyncThunk<
 >(
   'auth/loginToSpotify',
   async (anonymous, api) => {
-    log('loginToSpotify thunk started', LogLevel.INFO, { anonymous });
     const userToken: string | undefined = getFromLocalStorageWithExpiry('access_token') as string;
     const anonymousToken: string | undefined = getFromLocalStorageWithExpiry('public_access_token');
-    log('Initial token check', LogLevel.INFO, {
-      hasUserToken: !!userToken,
-      hasAnonymousToken: !!anonymousToken,
-    });
 
     let token = userToken || anonymousToken;
 
     if (token) {
-      log('Token found in local storage', LogLevel.INFO, { tokenType: userToken ? 'user' : 'anonymous' });
       axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
-      if (userToken) {
-        log('Dispatching fetchUser for existing user token');
-        api.dispatch(fetchUser());
-      }
+      if (userToken) api.dispatch(fetchUser());
       initRefreshTokenTimer(api.dispatch);
       return { token, loaded: false };
     }
 
-    log('No token in local storage, calling login.getToken()');
     let [requestedToken, requestUser] = await login.getToken();
-    log('login.getToken() returned', LogLevel.INFO, {
-      hasRequestedToken: !!requestedToken,
-      requestUser,
-    });
-
-    if (requestUser) {
-      log('Dispatching fetchUser for new user token');
-      api.dispatch(fetchUser());
-    }
+    if (requestUser) api.dispatch(fetchUser());
 
     if (!requestedToken) {
-      log('No token returned, redirecting to Spotify login');
       login.logInWithSpotify(anonymous);
     } else {
-      log('Token obtained, setting auth header');
       axios.defaults.headers.common['Authorization'] = 'Bearer ' + requestedToken;
       initRefreshTokenTimer(api.dispatch);
     }
@@ -74,15 +53,8 @@ export const loginToSpotify = createAsyncThunk<
 );
 
 export const fetchUser = createAsyncThunk('auth/fetchUser', async () => {
-  log('fetchUser thunk started');
-  try {
-    const response = await authService.fetchUser();
-    log('fetchUser succeeded', LogLevel.INFO, { userId: response.data.id });
-    return response.data;
-  } catch (error: any) {
-    log('fetchUser failed', LogLevel.ERROR, { error: error.message });
-    throw error;
-  }
+  const response = await authService.fetchUser();
+  return response.data;
 });
 
 export const logout = createAsyncThunk('auth/logout', async () => {
