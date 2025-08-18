@@ -19,8 +19,28 @@ import { ARTISTS_DEFAULT_IMAGE } from '../../../../constants/spotify';
 const LoginButton = () => {
   const { t } = useTranslation(['home']);
   const dispatch = useAppDispatch();
+  const tooltipOpen = useAppSelector((state) => state.ui.loginButtonOpen);
 
-  return <WhiteButton title={t('Log In')} onClick={() => dispatch(loginToSpotify(false))} />;
+  const onClose = useCallback(() => {
+    dispatch(uiActions.closeLoginButton());
+  }, [dispatch]);
+
+  return (
+    <Popconfirm
+      icon={null}
+      open={tooltipOpen}
+      onCancel={onClose}
+      placement='bottomLeft'
+      rootClassName='login-tooltip'
+      cancelText={<CloseIcon />}
+      title={t('You’re logged out')}
+      cancelButtonProps={{ type: 'text' }}
+      okButtonProps={{ className: 'white-button small' }}
+      description={t('Log in to add this to your Liked Songs.')}
+    >
+      <WhiteButton title={t('Log In')} onClick={() => dispatch(loginToSpotify(false))} />
+    </Popconfirm>
+  );
 };
 
 const Header = ({ opacity }: { opacity: number; title?: string }) => {

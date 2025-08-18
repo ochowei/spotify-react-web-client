@@ -74,6 +74,8 @@ const SpotifyContainer: FC<{ children: any }> = memo(({ children }) => {
     if (tokenInLocalStorage) {
       initRefreshTokenTimer(dispatch);
       dispatch(authActions.fetchUser());
+    } else {
+      dispatch(authActions.setRequesting({ requesting: false }));
     }
 
     return () => {
