@@ -1,6 +1,7 @@
 import Axios from 'axios';
 import { getFromLocalStorageWithExpiry, setLocalStorageWithExpiry } from '../localstorage';
 import axios from 'axios';
+import { log, LogLevel } from '../logger';
 
 /* eslint-disable import/no-anonymous-default-export */
 const client_id = process.env.REACT_APP_SPOTIFY_CLIENT_ID as string;
@@ -75,6 +76,7 @@ const logInWithSpotify = async (anonymous?: boolean) => {
 };
 
 const requestToken = async (code: string) => {
+  log('Requesting token with code');
   const code_verifier = localStorage.getItem('code_verifier') as string;
 
   const body = {
@@ -85,45 +87,65 @@ const requestToken = async (code: string) => {
     grant_type: 'authorization_code',
   };
 
-  const { data: response } = await Axios.post<{
-    access_token: string;
-    token_type: string;
-    expires_in: number;
-    refresh_token: string;
-  }>('https://accounts.spotify.com/api/token', body, {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  });
+  try {
+    const { data: response } = await Axios.post<{
+      access_token: string;
+      token_type: string;
+      expires_in: number;
+      refresh_token: string;
+    }>('https://accounts.spotify.com/api/token', body, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
 
-  if (response.access_token) {
-    setLocalStorageWithExpiry('access_token', response.access_token, response.expires_in * 1000);
-    axios.defaults.headers.common['Authorization'] = 'Bearer ' + response.access_token;
-    localStorage.setItem('refresh_token', response.refresh_token);
+    if (response.access_token) {
+      log('Token successfully requested', LogLevel.INFO, { hasRefreshToken: !!response.refresh_token });
+      setLocalStorageWithExpiry('access_token', response.access_token, response.expires_in * 1000);
+      axios.defaults.headers.common['Authorization'] = 'Bearer ' + response.access_token;
+      localStorage.setItem('refresh_token', response.refresh_token);
+    } else {
+      log('Token request response did not contain access_token', LogLevel.WARN);
+    }
+
+    return response.access_token;
+  } catch (error: any) {
+    log('requestToken failed', LogLevel.ERROR, { error: error.message });
+    throw error;
   }
-
-  return response.access_token;
 };
 
 const getToken = async () => {
+  log('getToken started');
   const token = getFromLocalStorageWithExpiry('access_token');
-  if (token) return [token, true];
-
-  const urlParams = new URLSearchParams(window.location.search);
-
-  let code = urlParams.get('code') as string;
-  if (code) return [await requestToken(code), true];
-
-  const publicToken = getFromLocalStorageWithExpiry('public_access_token');
-  if (publicToken) return [publicToken, false];
-
-  const access_token = window.location.hash.split('&')[0].split('=')[1];
-  if (access_token) {
-    setLocalStorageWithExpiry('public_access_token', access_token, 3600 * 1000);
-    window.location.hash = '';
-    return [access_token, false];
+  if (token) {
+    log('Found access_token in local storage');
+    return [token, true];
   }
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code') as string;
+  if (code) {
+    log('Found "code" in URL params, requesting token', LogLevel.INFO, { code });
+    return [await requestToken(code), true];
+  }
+
+  const publicToken = getFromLocalStorageWithExpiry('public_access_token');
+  if (publicToken) {
+    log('Found public_access_token in local storage');
+    return [publicToken, false];
+  }
+
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const accessToken = hashParams.get('access_token');
+  if (accessToken) {
+    log('Found access_token in URL hash');
+    setLocalStorageWithExpiry('public_access_token', accessToken, 3600 * 1000);
+    window.location.hash = '';
+    return [accessToken, false];
+  }
+
+  log('No token found in any location');
   return [null, false];
 };
 
