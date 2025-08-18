@@ -54,12 +54,8 @@ const generateRandomString = (length: number) => {
 };
 
 const logInWithSpotify = async (anonymous?: boolean) => {
-  let codeVerifier = localStorage.getItem('code_verifier');
-
-  if (!codeVerifier) {
-    codeVerifier = generateRandomString(64);
-    localStorage.setItem('code_verifier', codeVerifier);
-  }
+  const codeVerifier = generateRandomString(64);
+  localStorage.setItem('code_verifier', codeVerifier);
 
   const hashed = await sha256(codeVerifier);
   const codeChallenge = base64encode(hashed);
