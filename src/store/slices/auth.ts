@@ -15,7 +15,7 @@ import type { AppDispatch } from '../store';
 
 const initialState: { token?: string; playerLoaded: boolean; user?: User; requesting: boolean } = {
   user: undefined,
-  requesting: true,
+  requesting: false,
   playerLoaded: false,
   token: getFromLocalStorageWithExpiry('access_token') || undefined,
 };
