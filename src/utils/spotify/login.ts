@@ -153,6 +153,7 @@ export const getRefreshToken = async () => {
   const response = await body.json();
 
   if (!response.access_token) {
+    localStorage.removeItem('refresh_token');
     logInWithSpotify();
     return null;
   }

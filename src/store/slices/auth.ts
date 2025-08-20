@@ -23,34 +23,43 @@ export const loginToSpotify = createAsyncThunk<
   { token?: string; loaded: boolean },
   boolean,
   { dispatch: AppDispatch }
->(
-  'auth/loginToSpotify',
-  async (anonymous, api) => {
-    const userToken: string | undefined = getFromLocalStorageWithExpiry('access_token') as string;
-    const anonymousToken: string | undefined = getFromLocalStorageWithExpiry('public_access_token');
+>('auth/loginToSpotify', async (anonymous, api) => {
+  const refreshToken = localStorage.getItem('refresh_token');
 
-    let token = userToken || anonymousToken;
-
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
-      if (userToken) api.dispatch(fetchUser());
+  if (refreshToken) {
+    const data = await login.getRefreshToken();
+    if (data?.access_token) {
+      api.dispatch(authActions.setToken({ token: data.access_token }));
       initRefreshTokenTimer(api.dispatch);
-      return { token, loaded: false };
+      api.dispatch(fetchUser());
+      return { token: data.access_token, loaded: false };
     }
-
-    let [requestedToken, requestUser] = await login.getToken();
-    if (requestUser) api.dispatch(fetchUser());
-
-    if (!requestedToken) {
-      login.logInWithSpotify(anonymous);
-    } else {
-      axios.defaults.headers.common['Authorization'] = 'Bearer ' + requestedToken;
-      initRefreshTokenTimer(api.dispatch);
-    }
-
-    return { token: requestedToken, loaded: true };
   }
-);
+
+  const userToken: string | undefined = getFromLocalStorageWithExpiry('access_token') as string;
+  const anonymousToken: string | undefined = getFromLocalStorageWithExpiry('public_access_token');
+
+  let token = userToken || anonymousToken;
+
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+    if (userToken) api.dispatch(fetchUser());
+    initRefreshTokenTimer(api.dispatch);
+    return { token, loaded: false };
+  }
+
+  let [requestedToken, requestUser] = await login.getToken();
+  if (requestUser) api.dispatch(fetchUser());
+
+  if (!requestedToken) {
+    login.logInWithSpotify(anonymous);
+  } else {
+    axios.defaults.headers.common['Authorization'] = 'Bearer ' + requestedToken;
+    initRefreshTokenTimer(api.dispatch);
+  }
+
+  return { token: requestedToken, loaded: true };
+});
 
 export const fetchUser = createAsyncThunk('auth/fetchUser', async () => {
   const response = await authService.fetchUser();
